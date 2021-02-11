@@ -53,7 +53,8 @@ export namespace hooking {
     });
   };
 
-  export const watchClass = (clazz: string): Promise<void> => {
+  //export const watchClass = (clazz: string, ddargs: boolean, dbt: boolean, dret: boolean): Promise<void> => {
+  export const watchClass = (clazz: string, dargs: boolean, dbt: boolean, dret: boolean): Promise<void> => {
     return wrapJavaPerform(() => {
       const clazzInstance: JavaClass = Java.use(clazz);
 
@@ -103,8 +104,38 @@ export namespace hooking {
               `Called ${c.green(clazz)}.${c.greenBright(m.methodName)}(${c.red(calleeArgTypes.join(", "))})`,
             );
 
+            // dump arguments
+            if (dargs && calleeArgTypes.length > 0) {
+              const argValues: string[] = [];
+              for (const h of arguments) {
+                argValues.push(JSON.stringify(h || "(none)"));
+              }
+
+              send(
+                c.blackBright(`[${job.identifier}] `) +
+                `Arguments ${c.green(clazz)}.${c.greenBright(m.methodName)}(${c.red(argValues.join(", "))})`,
+              );
+            }
+
+            // dump a backtrace
+            const throwable: Throwable = Java.use("java.lang.Throwable");
+            if (dbt) {
+              send(
+                c.blackBright(`[${job.identifier}] `) + "Backtrace:\n\t" +
+                throwable.$new().getStackTrace().map((traceElement) => traceElement.toString() + "\n\t").join(""),
+              );
+            }
+
             // actually run the intended method
-            return m.apply(this, arguments);
+            const retVal: any = m.apply(this, arguments);
+
+            // dump the return value
+            if (dret) {
+              const retValStr: string = JSON.stringify(retVal || "(none)");
+              send(c.blackBright(`[${job.identifier}] `) + `Return Value: ${c.red(retValStr)}`);
+            }
+
+            return retVal;
           };
 
           // record this implementation override for the job

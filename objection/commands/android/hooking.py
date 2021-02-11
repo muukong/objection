@@ -126,7 +126,12 @@ def watch_class(args: list) -> None:
     target_class = args[0]
 
     api = state_connection.get_api()
-    api.android_hooking_watch_class(target_class)
+    api.android_hooking_watch_class(target_class,
+                                    _should_dump_args(args),
+                                    _should_dump_backtrace(args),
+                                    _should_dump_return_value(args))
+
+
 
 
 def watch_class_method(args: list) -> None:
